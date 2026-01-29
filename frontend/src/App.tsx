@@ -2,12 +2,39 @@ import { useState } from 'react'
 import FleetStatus from './components/FleetStatus'
 import FleetControl from './components/FleetControl'
 import DBViewer from './components/DBViewer'
+import AgentDetail from './components/AgentDetail'
 import './App.css'
 
 type Tab = 'status' | 'control' | 'db'
 
 function App() {
   const [activeTab, setActiveTab] = useState<Tab>('status')
+  const [selectedAgent, setSelectedAgent] = useState<string | null>(null)
+
+  const handleAgentSelect = (agentId: string) => {
+    setSelectedAgent(agentId)
+  }
+
+  const handleBackToStatus = () => {
+    setSelectedAgent(null)
+  }
+
+  // If an agent is selected, show agent detail view
+  if (selectedAgent) {
+    return (
+      <div className="app">
+        <header className="header">
+          <h1>Fleet Control</h1>
+          <nav className="tabs">
+            <button className="active">Agent Details</button>
+          </nav>
+        </header>
+        <main className="content">
+          <AgentDetail agentId={selectedAgent} onBack={handleBackToStatus} />
+        </main>
+      </div>
+    )
+  }
 
   return (
     <div className="app">
@@ -36,7 +63,7 @@ function App() {
       </header>
 
       <main className="content">
-        {activeTab === 'status' && <FleetStatus />}
+        {activeTab === 'status' && <FleetStatus onAgentSelect={handleAgentSelect} />}
         {activeTab === 'control' && <FleetControl />}
         {activeTab === 'db' && <DBViewer />}
       </main>

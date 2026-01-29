@@ -6,6 +6,7 @@ interface Agent {
   online: boolean
   status: string
   inbox_count: number
+  type?: 'cli' | 'desktop'
 }
 
 interface FleetStatusResponse {
@@ -14,7 +15,11 @@ interface FleetStatusResponse {
   total_count: number
 }
 
-export default function FleetStatus() {
+interface FleetStatusProps {
+  onAgentSelect?: (agentId: string) => void
+}
+
+export default function FleetStatus({ onAgentSelect }: FleetStatusProps) {
   const [data, setData] = useState<FleetStatusResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -130,19 +135,35 @@ export default function FleetStatus() {
 
       <div className="agent-grid">
         {data.agents.map((agent) => (
-          <div key={agent.id} className="agent-card">
+          <div
+            key={agent.id}
+            className={`agent-card ${onAgentSelect ? 'clickable' : ''} ${agent.type === 'desktop' ? 'desktop-agent' : ''}`}
+            onClick={() => onAgentSelect?.(agent.id)}
+            role={onAgentSelect ? 'button' : undefined}
+            tabIndex={onAgentSelect ? 0 : undefined}
+            onKeyDown={(e) => {
+              if (onAgentSelect && (e.key === 'Enter' || e.key === ' ')) {
+                e.preventDefault()
+                onAgentSelect(agent.id)
+              }
+            }}
+          >
             <div className="agent-header">
               <div>
                 <div className="agent-name">{agent.name}</div>
-                <div className="agent-id">{agent.id}</div>
+                <div className="agent-id">
+                  {agent.id}
+                  {agent.type === 'desktop' && <span className="type-badge desktop">Desktop</span>}
+                </div>
               </div>
               <span className={`status-badge ${agent.online ? 'online' : 'offline'}`}>
-                {agent.online ? 'Online' : 'Offline'}
+                {agent.online ? (agent.type === 'desktop' ? 'Running' : 'Online') : (agent.type === 'desktop' ? 'Stopped' : 'Offline')}
               </span>
             </div>
             <div className="inbox-count">
               Inbox: {agent.inbox_count} message{agent.inbox_count !== 1 ? 's' : ''}
             </div>
+            {onAgentSelect && <div className="card-hint">Click to view details →</div>}
           </div>
         ))}
       </div>
