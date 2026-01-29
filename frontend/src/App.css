@@ -339,6 +339,16 @@ body {
   word-break: break-word;
 }
 
+/* Connection status indicator */
+.connection-status {
+  margin-top: 1.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--bg-secondary);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  text-align: center;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .header {

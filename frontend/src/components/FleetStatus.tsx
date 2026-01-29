@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 interface Agent {
   id: string
@@ -18,6 +18,9 @@ export default function FleetStatus() {
   const [data, setData] = useState<FleetStatusResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [connectionType, setConnectionType] = useState<'sse' | 'polling'>('sse')
+  const eventSourceRef = useRef<EventSource | null>(null)
+  const pollingIntervalRef = useRef<number | null>(null)
 
   const fetchStatus = async () => {
     try {
@@ -33,10 +36,65 @@ export default function FleetStatus() {
     }
   }
 
-  useEffect(() => {
+  const startSSE = () => {
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close()
+    }
+
+    const eventSource = new EventSource('/api/fleet/status/stream')
+    eventSourceRef.current = eventSource
+
+    eventSource.onmessage = (event) => {
+      try {
+        const json = JSON.parse(event.data)
+        if (!json.error) {
+          setData(json)
+          setError(null)
+          setLoading(false)
+        }
+      } catch {
+        // Ignore parse errors
+      }
+    }
+
+    eventSource.onerror = () => {
+      // SSE failed, fall back to polling
+      eventSource.close()
+      eventSourceRef.current = null
+      setConnectionType('polling')
+      startPolling()
+    }
+
+    eventSource.onopen = () => {
+      setConnectionType('sse')
+      // Stop polling if it was running
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current)
+        pollingIntervalRef.current = null
+      }
+    }
+  }
+
+  const startPolling = () => {
     fetchStatus()
-    const interval = setInterval(fetchStatus, 5000)
-    return () => clearInterval(interval)
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current)
+    }
+    pollingIntervalRef.current = window.setInterval(fetchStatus, 5000)
+  }
+
+  useEffect(() => {
+    // Try SSE first
+    startSSE()
+
+    return () => {
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close()
+      }
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current)
+      }
+    }
   }, [])
 
   if (loading && !data) {
@@ -87,6 +145,14 @@ export default function FleetStatus() {
             </div>
           </div>
         ))}
+      </div>
+
+      <div className="connection-status">
+        {connectionType === 'sse' ? (
+          <span style={{ color: 'var(--success)' }}>Live updates (SSE)</span>
+        ) : (
+          <span style={{ color: 'var(--warning)' }}>Polling (5s)</span>
+        )}
       </div>
     </div>
   )
