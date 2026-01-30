@@ -967,3 +967,35 @@ body {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* Fleet-wide inbox check button (CV2-Main only) */
+.fleet-inbox-section {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--accent);
+}
+
+.btn-fleet-inbox {
+  width: 100%;
+  padding: 0.5rem 1rem;
+  background: linear-gradient(135deg, var(--accent), #6366f1);
+  border: none;
+  border-radius: 6px;
+  color: white;
+  font-weight: 500;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-height: 40px;
+}
+
+.btn-fleet-inbox:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--accent-hover), #4f46e5);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.btn-fleet-inbox:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

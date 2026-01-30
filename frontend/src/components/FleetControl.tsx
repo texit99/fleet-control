@@ -140,6 +140,7 @@ export default function FleetControl() {
   }
 
   const checkInbox = (agentId: string) => doContextAction(`/fleet/context/inbox/${agentId}`, `Inbox ${agentId}`)
+  const fleetInboxCheck = () => doContextAction('/fleet/inbox-check-all', 'Fleet Inbox Check')
 
   if (loading && !data) {
     return <div>Loading...</div>
@@ -286,6 +287,24 @@ export default function FleetControl() {
                 )}
               </button>
             </div>
+
+            {/* Fleet-wide inbox check - CV2-Main only */}
+            {agent.id === 'cv2-main' && (
+              <div className="fleet-inbox-section">
+                <button
+                  className="btn btn-fleet-inbox"
+                  onClick={fleetInboxCheck}
+                  disabled={actionLoading !== null}
+                  title="Check inbox for all fleet agents"
+                >
+                  {actionLoading === '/fleet/inbox-check-all' ? (
+                    <span className="spinner" />
+                  ) : (
+                    '📥 Fleet Inbox Check'
+                  )}
+                </button>
+              </div>
+            )}
           </div>
         ))}
       </div>
