@@ -34,8 +34,35 @@ export default function FleetControl() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [modal, setModal] = useState<ModalData | null>(null)
   const [copied, setCopied] = useState(false)
+  const [mainMessage, setMainMessage] = useState('')
+  const [sendingMessage, setSendingMessage] = useState(false)
 
   const getApiKey = () => localStorage.getItem('cv_api_key') || ''
+
+  const sendMessageToMain = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!mainMessage.trim()) return
+
+    setSendingMessage(true)
+    try {
+      const res = await fetch('/api/fleet/send-message/cv2-main', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': getApiKey(),
+        },
+        body: JSON.stringify({ message: mainMessage })
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Failed')
+      setMainMessage('')
+      setMessage({ type: 'success', text: 'Message sent to Main' })
+    } catch (err) {
+      setMessage({ type: 'error', text: err instanceof Error ? err.message : 'Failed' })
+    } finally {
+      setSendingMessage(false)
+    }
+  }
 
   const fetchStatus = async () => {
     try {
@@ -293,6 +320,23 @@ export default function FleetControl() {
             {/* Fleet-wide commands - CV2-Main only */}
             {agent.id === 'cv2-main' && (
               <div className="fleet-commands-section">
+                <form className="main-message-form" onSubmit={sendMessageToMain}>
+                  <input
+                    type="text"
+                    value={mainMessage}
+                    onChange={(e) => setMainMessage(e.target.value)}
+                    placeholder="Send message to Main..."
+                    className="main-message-input"
+                    disabled={sendingMessage}
+                  />
+                  <button
+                    type="submit"
+                    className="btn-send-message"
+                    disabled={sendingMessage || !mainMessage.trim()}
+                  >
+                    {sendingMessage ? <span className="spinner" /> : '➤'}
+                  </button>
+                </form>
                 <div className="fleet-commands-row">
                   <button
                     className="btn btn-fleet-cmd btn-fleet-save"

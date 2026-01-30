@@ -1063,3 +1063,167 @@ body {
   background: rgba(239, 68, 68, 0.15);
   color: var(--danger);
 }
+
+/* Agent header with config button */
+.agent-header-buttons {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-config {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.2rem 0.4rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+}
+
+.btn-config:hover {
+  background: var(--bg-secondary);
+  border-color: var(--accent);
+}
+
+/* Main message input */
+.main-commands-section {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 2px solid var(--accent);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.main-message-form {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.main-message-input {
+  flex: 1;
+  padding: 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+}
+
+.main-message-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.main-message-input:disabled {
+  opacity: 0.5;
+}
+
+.btn-send-message {
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  border: none;
+  background: var(--accent);
+  color: white;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.2s;
+  min-width: 40px;
+}
+
+.btn-send-message:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.btn-send-message:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Terminal Modal */
+.terminal-modal {
+  max-width: 900px;
+  width: 95%;
+  height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.terminal-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.btn-refresh {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
+
+.btn-refresh:hover {
+  background: var(--bg-secondary);
+  border-color: var(--accent);
+}
+
+.terminal-body {
+  flex: 1;
+  overflow: hidden;
+  background: #0d0d0d;
+  border-radius: 6px;
+  margin: 0 1rem;
+}
+
+.terminal-content {
+  height: 100%;
+  overflow: auto;
+  padding: 1rem;
+  margin: 0;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: #e0e0e0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.terminal-footer {
+  padding: 0.75rem 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+}
+
+.terminal-hint {
+  opacity: 0.7;
+}
+
+/* Loading overlay */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  z-index: 1001;
+  color: var(--text-primary);
+}
+
+.loading-overlay .spinner {
+  width: 32px;
+  height: 32px;
+  border-width: 3px;
+}

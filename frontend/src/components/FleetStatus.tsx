@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 
 interface Agent {
   id: string
@@ -30,6 +30,13 @@ interface InboxModal {
   files: string[]
 }
 
+interface TerminalModal {
+  agentId: string
+  agentName: string
+  content: string
+  online: boolean
+}
+
 export default function FleetStatus({ onAgentSelect }: FleetStatusProps) {
   const [data, setData] = useState<FleetStatusResponse | null>(null)
   const [loading, setLoading] = useState(true)
@@ -39,10 +46,97 @@ export default function FleetStatus({ onAgentSelect }: FleetStatusProps) {
   const [inboxLoading, setInboxLoading] = useState<string | null>(null)
   const [fleetActionLoading, setFleetActionLoading] = useState<string | null>(null)
   const [fleetMessage, setFleetMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [terminalModal, setTerminalModal] = useState<TerminalModal | null>(null)
+  const [terminalLoading, setTerminalLoading] = useState(false)
+  const [mainMessage, setMainMessage] = useState('')
+  const [sendingMessage, setSendingMessage] = useState(false)
   const eventSourceRef = useRef<EventSource | null>(null)
   const pollingIntervalRef = useRef<number | null>(null)
+  const terminalPollRef = useRef<number | null>(null)
+  const terminalRef = useRef<HTMLPreElement | null>(null)
 
   const getApiKey = () => localStorage.getItem('cv_api_key') || ''
+
+  // Terminal modal functions
+  const fetchTerminal = useCallback(async (agentId: string, agentName: string) => {
+    try {
+      const res = await fetch(`/api/fleet/terminal/${agentId}`)
+      const json = await res.json()
+      if (res.ok && json.content) {
+        setTerminalModal({
+          agentId,
+          agentName,
+          content: json.content,
+          online: json.online
+        })
+        // Auto-scroll to bottom
+        setTimeout(() => {
+          if (terminalRef.current) {
+            terminalRef.current.scrollTop = terminalRef.current.scrollHeight
+          }
+        }, 50)
+      } else if (!res.ok) {
+        setTerminalModal({
+          agentId,
+          agentName,
+          content: json.error || 'Failed to fetch terminal',
+          online: false
+        })
+      }
+    } catch (err) {
+      console.error('Terminal fetch failed:', err)
+    }
+  }, [])
+
+  const openTerminal = async (agent: Agent) => {
+    if (agent.type === 'desktop' || agent.type === 'remote') {
+      // Desktop/remote agents don't have tmux terminals
+      return
+    }
+    setTerminalLoading(true)
+    await fetchTerminal(agent.id, agent.name)
+    setTerminalLoading(false)
+
+    // Start polling while modal is open
+    terminalPollRef.current = window.setInterval(() => {
+      fetchTerminal(agent.id, agent.name)
+    }, 2000)
+  }
+
+  const closeTerminal = () => {
+    setTerminalModal(null)
+    if (terminalPollRef.current) {
+      clearInterval(terminalPollRef.current)
+      terminalPollRef.current = null
+    }
+  }
+
+  // Send message to Main
+  const sendMessageToMain = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!mainMessage.trim()) return
+
+    setSendingMessage(true)
+    try {
+      const res = await fetch('/api/fleet/send-message/cv2-main', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': getApiKey(),
+        },
+        body: JSON.stringify({ message: mainMessage })
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Failed')
+      setMainMessage('')
+      setFleetMessage({ type: 'success', text: 'Message sent to Main' })
+      setTimeout(() => setFleetMessage(null), 2000)
+    } catch (err) {
+      setFleetMessage({ type: 'error', text: err instanceof Error ? err.message : 'Failed' })
+    } finally {
+      setSendingMessage(false)
+    }
+  }
 
   const fleetInboxCheck = async (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -127,7 +221,6 @@ export default function FleetStatus({ onAgentSelect }: FleetStatusProps) {
     }
 
     eventSource.onerror = () => {
-      // SSE failed, fall back to polling
       eventSource.close()
       eventSourceRef.current = null
       setConnectionType('polling')
@@ -136,7 +229,6 @@ export default function FleetStatus({ onAgentSelect }: FleetStatusProps) {
 
     eventSource.onopen = () => {
       setConnectionType('sse')
-      // Stop polling if it was running
       if (pollingIntervalRef.current) {
         clearInterval(pollingIntervalRef.current)
         pollingIntervalRef.current = null
@@ -153,16 +245,11 @@ export default function FleetStatus({ onAgentSelect }: FleetStatusProps) {
   }
 
   useEffect(() => {
-    // Try SSE first
     startSSE()
-
     return () => {
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close()
-      }
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current)
-      }
+      if (eventSourceRef.current) eventSourceRef.current.close()
+      if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current)
+      if (terminalPollRef.current) clearInterval(terminalPollRef.current)
     }
   }, [])
 
@@ -201,16 +288,8 @@ export default function FleetStatus({ onAgentSelect }: FleetStatusProps) {
         {data.agents.map((agent) => (
           <div
             key={agent.id}
-            className={`agent-card ${onAgentSelect ? 'clickable' : ''} ${agent.type === 'desktop' ? 'desktop-agent' : ''}`}
-            onClick={() => onAgentSelect?.(agent.id)}
-            role={onAgentSelect ? 'button' : undefined}
-            tabIndex={onAgentSelect ? 0 : undefined}
-            onKeyDown={(e) => {
-              if (onAgentSelect && (e.key === 'Enter' || e.key === ' ')) {
-                e.preventDefault()
-                onAgentSelect(agent.id)
-              }
-            }}
+            className={`agent-card ${agent.type !== 'desktop' && agent.type !== 'remote' ? 'clickable' : ''} ${agent.type === 'desktop' ? 'desktop-agent' : ''}`}
+            onClick={() => agent.type !== 'desktop' && agent.type !== 'remote' && openTerminal(agent)}
           >
             <div className="agent-header">
               <div>
@@ -221,9 +300,20 @@ export default function FleetStatus({ onAgentSelect }: FleetStatusProps) {
                   {agent.type === 'remote' && <span className="type-badge remote">Remote</span>}
                 </div>
               </div>
-              <span className={`status-badge ${agent.online ? 'online' : 'offline'}`}>
-                {agent.online ? (agent.type === 'desktop' ? 'Running' : 'Online') : (agent.type === 'desktop' ? 'Stopped' : 'Offline')}
-              </span>
+              <div className="agent-header-buttons">
+                {onAgentSelect && (
+                  <button
+                    className="btn-config"
+                    onClick={(e) => { e.stopPropagation(); onAgentSelect(agent.id); }}
+                    title="View identity documents"
+                  >
+                    ⚙️
+                  </button>
+                )}
+                <span className={`status-badge ${agent.online ? 'online' : 'offline'}`}>
+                  {agent.online ? (agent.type === 'desktop' ? 'Running' : 'Online') : (agent.type === 'desktop' ? 'Stopped' : 'Offline')}
+                </span>
+              </div>
             </div>
             {agent.current_task && (
               <div className="agent-task">
@@ -249,27 +339,44 @@ export default function FleetStatus({ onAgentSelect }: FleetStatusProps) {
                 {inboxLoading === agent.id ? <span className="spinner" /> : '📬'}
               </button>
             </div>
-            {/* Fleet Inbox Check - CV2-Main only */}
+
+            {/* CV2-Main special section */}
             {agent.id === 'cv2-main' && (
-              <div className="fleet-commands-section">
+              <div className="main-commands-section">
+                <form className="main-message-form" onSubmit={sendMessageToMain} onClick={(e) => e.stopPropagation()}>
+                  <input
+                    type="text"
+                    value={mainMessage}
+                    onChange={(e) => setMainMessage(e.target.value)}
+                    placeholder="Send message to Main..."
+                    className="main-message-input"
+                    disabled={sendingMessage}
+                  />
+                  <button
+                    type="submit"
+                    className="btn-send-message"
+                    disabled={sendingMessage || !mainMessage.trim()}
+                  >
+                    {sendingMessage ? <span className="spinner" /> : '➤'}
+                  </button>
+                </form>
                 <button
                   className="btn btn-fleet-inbox"
                   onClick={fleetInboxCheck}
                   disabled={fleetActionLoading !== null}
                   title="Trigger inbox check for all fleet agents"
                 >
-                  {fleetActionLoading === 'inbox' ? (
-                    <span className="spinner" />
-                  ) : (
-                    '📬 Fleet Inbox Check'
-                  )}
+                  {fleetActionLoading === 'inbox' ? <span className="spinner" /> : '📬 Fleet Inbox Check'}
                 </button>
                 {fleetMessage && (
                   <div className={`fleet-message ${fleetMessage.type}`}>{fleetMessage.text}</div>
                 )}
               </div>
             )}
-            {onAgentSelect && <div className="card-hint">Click to view details →</div>}
+
+            {agent.type !== 'desktop' && agent.type !== 'remote' && (
+              <div className="card-hint">Click to view terminal</div>
+            )}
           </div>
         ))}
       </div>
@@ -282,6 +389,39 @@ export default function FleetStatus({ onAgentSelect }: FleetStatusProps) {
         )}
       </div>
 
+      {/* Terminal Modal */}
+      {terminalModal && (
+        <div className="modal-overlay" onClick={closeTerminal}>
+          <div className="modal-content terminal-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>{terminalModal.agentName} Terminal</h3>
+              <div className="terminal-header-actions">
+                <button
+                  className="btn-refresh"
+                  onClick={() => fetchTerminal(terminalModal.agentId, terminalModal.agentName)}
+                  title="Refresh"
+                >
+                  🔄
+                </button>
+                <span className={`status-badge ${terminalModal.online ? 'online' : 'offline'}`}>
+                  {terminalModal.online ? 'Live' : 'Offline'}
+                </span>
+                <button className="modal-close" onClick={closeTerminal}>×</button>
+              </div>
+            </div>
+            <div className="terminal-body">
+              <pre ref={terminalRef} className="terminal-content">
+                {terminalModal.content || 'No content'}
+              </pre>
+            </div>
+            <div className="terminal-footer">
+              <span className="terminal-hint">Auto-refreshes every 2s</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Inbox Modal */}
       {inboxModal && (
         <div className="modal-overlay" onClick={() => setInboxModal(null)}>
           <div className="modal-content modal-wide" onClick={(e) => e.stopPropagation()}>
@@ -301,6 +441,13 @@ export default function FleetStatus({ onAgentSelect }: FleetStatusProps) {
               )}
             </div>
           </div>
+        </div>
+      )}
+
+      {terminalLoading && (
+        <div className="loading-overlay">
+          <div className="spinner" />
+          <span>Loading terminal...</span>
         </div>
       )}
     </div>
