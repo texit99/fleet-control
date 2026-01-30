@@ -19,6 +19,31 @@ interface StaticApp {
   host?: string
 }
 
+interface RemoteMachine {
+  id: string
+  name: string
+  icon: string
+  provider: string
+  publicIp: string
+  tailscaleIp?: string
+  sshUser?: string
+  description: string
+}
+
+// Remote VPS/Machines
+const REMOTE_MACHINES: RemoteMachine[] = [
+  {
+    id: 'hostinger-vps',
+    name: 'Hostinger VPS',
+    icon: '☁️',
+    provider: 'Hostinger',
+    publicIp: '153.92.214.24',
+    tailscaleIp: '', // TODO: Configure Tailscale
+    sshUser: 'root',
+    description: 'Mobile Claude Code access via Termius',
+  },
+]
+
 // Static apps not managed by trigger-api
 const STATIC_APPS: StaticApp[] = [
   {
@@ -318,6 +343,62 @@ export default function AppCards() {
           )
         })}
       </div>
+
+      {/* Remote Machines / VPS */}
+      {REMOTE_MACHINES.length > 0 && (
+        <>
+          <h2 style={{ marginTop: '2rem' }}>Remote Machines</h2>
+          <div className="app-grid">
+            {REMOTE_MACHINES.map((machine) => (
+              <div key={machine.id} className="app-card">
+                <div className="app-card-header">
+                  <div className="app-card-title">
+                    <div className="app-card-icon">{machine.icon}</div>
+                    <div>
+                      <div className="app-card-name">{machine.name}</div>
+                      <div className="app-card-url">{machine.provider}</div>
+                    </div>
+                  </div>
+                  <div className="app-card-status stopped">
+                    <span className="app-card-status-dot" />
+                    VPS
+                  </div>
+                </div>
+
+                <div className="app-card-details">
+                  <div className="app-card-detail">
+                    <span className="app-card-detail-label">Public IP</span>
+                    <span className="app-card-detail-value">{machine.publicIp}</span>
+                  </div>
+                  {machine.tailscaleIp && (
+                    <div className="app-card-detail">
+                      <span className="app-card-detail-label">Tailscale</span>
+                      <span className="app-card-detail-value">{machine.tailscaleIp}</span>
+                    </div>
+                  )}
+                  <div className="app-card-detail">
+                    <span className="app-card-detail-label">User</span>
+                    <span className="app-card-detail-value">{machine.sshUser || 'N/A'}</span>
+                  </div>
+                </div>
+
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
+                  {machine.description}
+                </div>
+
+                <div className="app-card-actions">
+                  <button
+                    className="app-card-btn"
+                    onClick={() => navigator.clipboard.writeText(`ssh ${machine.sshUser}@${machine.publicIp}`)}
+                  >
+                    Copy SSH
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   )
 }
