@@ -50,6 +50,8 @@ export default function FleetStatus({ onAgentSelect }: FleetStatusProps) {
   const [terminalLoading, setTerminalLoading] = useState(false)
   const [mainMessage, setMainMessage] = useState('')
   const [sendingMessage, setSendingMessage] = useState(false)
+  const [terminalInput, setTerminalInput] = useState('')
+  const [sendingTerminalMsg, setSendingTerminalMsg] = useState(false)
   const eventSourceRef = useRef<EventSource | null>(null)
   const pollingIntervalRef = useRef<number | null>(null)
   const terminalPollRef = useRef<number | null>(null)
@@ -105,9 +107,36 @@ export default function FleetStatus({ onAgentSelect }: FleetStatusProps) {
 
   const closeTerminal = () => {
     setTerminalModal(null)
+    setTerminalInput('')
     if (terminalPollRef.current) {
       clearInterval(terminalPollRef.current)
       terminalPollRef.current = null
+    }
+  }
+
+  const sendTerminalMessage = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!terminalModal || !terminalInput.trim()) return
+
+    setSendingTerminalMsg(true)
+    try {
+      const res = await fetch(`/api/fleet/send-message/${terminalModal.agentId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': getApiKey(),
+        },
+        body: JSON.stringify({ message: terminalInput })
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Failed')
+      setTerminalInput('')
+      // Refresh terminal to show the sent message
+      setTimeout(() => fetchTerminal(terminalModal.agentId, terminalModal.agentName), 500)
+    } catch (err) {
+      console.error('Send failed:', err)
+    } finally {
+      setSendingTerminalMsg(false)
     }
   }
 
@@ -415,6 +444,23 @@ export default function FleetStatus({ onAgentSelect }: FleetStatusProps) {
               </pre>
             </div>
             <div className="terminal-footer">
+              <form className="terminal-input-form" onSubmit={sendTerminalMessage}>
+                <input
+                  type="text"
+                  value={terminalInput}
+                  onChange={(e) => setTerminalInput(e.target.value)}
+                  placeholder={`Send to ${terminalModal.agentName}...`}
+                  className="terminal-input"
+                  disabled={sendingTerminalMsg || !terminalModal.online}
+                />
+                <button
+                  type="submit"
+                  className="btn-terminal-send"
+                  disabled={sendingTerminalMsg || !terminalInput.trim() || !terminalModal.online}
+                >
+                  {sendingTerminalMsg ? <span className="spinner" /> : '➤'}
+                </button>
+              </form>
               <span className="terminal-hint">Auto-refreshes every 2s</span>
             </div>
           </div>
