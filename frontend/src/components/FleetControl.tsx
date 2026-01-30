@@ -6,6 +6,7 @@ interface Agent {
   online: boolean
   status: string
   inbox_count: number
+  type?: 'cli' | 'desktop'
 }
 
 interface FleetStatusResponse {
@@ -14,11 +15,26 @@ interface FleetStatusResponse {
   total_count: number
 }
 
+interface ModalData {
+  title: string
+  instruction: string
+  command: string
+}
+
+interface InboxModalData {
+  agent: string
+  count: number
+  files: string[]
+}
+
 export default function FleetControl() {
   const [data, setData] = useState<FleetStatusResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [modal, setModal] = useState<ModalData | null>(null)
+  const [inboxModal, setInboxModal] = useState<InboxModalData | null>(null)
+  const [copied, setCopied] = useState(false)
 
   const getApiKey = () => localStorage.getItem('cv_api_key') || ''
 
@@ -74,6 +90,77 @@ export default function FleetControl() {
   const restartAgent = (agentId: string) => doAction(`/fleet/restart/${agentId}`, `Restart ${agentId}`)
   const launchAll = () => doAction('/fleet/launch-all', 'Launch All')
   const killAll = () => doAction('/fleet/kill-all', 'Kill All')
+
+  // Context management actions
+  const doContextAction = async (endpoint: string, label: string) => {
+    setActionLoading(endpoint)
+    setMessage(null)
+
+    try {
+      const res = await fetch(`/api${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': getApiKey(),
+        },
+      })
+
+      const json = await res.json()
+
+      if (!res.ok) {
+        throw new Error(json.error || 'Action failed')
+      }
+
+      // Check if response is a modal (for cv2-app)
+      if (json.status === 'modal' && json.modal) {
+        setModal(json.modal)
+        setCopied(false)
+      } else {
+        setMessage({ type: 'success', text: `${label}: ${json.status}` })
+      }
+    } catch (err) {
+      setMessage({ type: 'error', text: err instanceof Error ? err.message : 'Action failed' })
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const saveContext = (agentId: string) => doContextAction(`/fleet/context/save/${agentId}`, `Save ${agentId}`)
+  const pullContext = (agentId: string) => doContextAction(`/fleet/context/pull/${agentId}`, `Pull ${agentId}`)
+  const nudgeAgent = (agentId: string) => doContextAction(`/fleet/context/nudge/${agentId}`, `Nudge ${agentId}`)
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  const closeModal = () => {
+    setModal(null)
+    setCopied(false)
+  }
+
+  const checkInbox = async (agentId: string) => {
+    setActionLoading(`inbox-${agentId}`)
+    try {
+      const res = await fetch(`/api/inbox/${agentId}`)
+      if (!res.ok) throw new Error('Failed to fetch inbox')
+      const data = await res.json()
+      setInboxModal({
+        agent: agentId,
+        count: data.count,
+        files: data.files || []
+      })
+    } catch (err) {
+      setMessage({ type: 'error', text: err instanceof Error ? err.message : 'Failed to fetch inbox' })
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const closeInboxModal = () => {
+    setInboxModal(null)
+  }
 
   if (loading && !data) {
     return <div>Loading...</div>
@@ -156,9 +243,116 @@ export default function FleetControl() {
                 </>
               )}
             </div>
+
+            {/* Context Management Buttons */}
+            <div className="context-buttons">
+              <button
+                className="btn btn-context btn-save"
+                onClick={() => saveContext(agent.id)}
+                disabled={actionLoading !== null || (!agent.online && agent.type !== 'desktop')}
+                title="Save context checkpoint"
+              >
+                {actionLoading === `/fleet/context/save/${agent.id}` ? (
+                  <span className="spinner" />
+                ) : (
+                  '💾 Save'
+                )}
+              </button>
+              <button
+                className="btn btn-context btn-pull"
+                onClick={() => pullContext(agent.id)}
+                disabled={actionLoading !== null || (!agent.online && agent.type !== 'desktop')}
+                title="Pull recent context"
+              >
+                {actionLoading === `/fleet/context/pull/${agent.id}` ? (
+                  <span className="spinner" />
+                ) : (
+                  '📥 Pull'
+                )}
+              </button>
+              <button
+                className="btn btn-context btn-nudge"
+                onClick={() => nudgeAgent(agent.id)}
+                disabled={actionLoading !== null || (!agent.online && agent.type !== 'desktop')}
+                title="Send recovery prompt"
+              >
+                {actionLoading === `/fleet/context/nudge/${agent.id}` ? (
+                  <span className="spinner" />
+                ) : (
+                  '🔔 Nudge'
+                )}
+              </button>
+              <button
+                className="btn btn-context btn-inbox"
+                onClick={() => checkInbox(agent.id)}
+                disabled={actionLoading !== null}
+                title="Check inbox messages"
+              >
+                {actionLoading === `inbox-${agent.id}` ? (
+                  <span className="spinner" />
+                ) : (
+                  '📬 Inbox'
+                )}
+              </button>
+            </div>
           </div>
         ))}
       </div>
+
+      {/* Modal for CV2-App copy/paste commands */}
+      {modal && (
+        <div className="modal-overlay" onClick={closeModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>{modal.title}</h3>
+              <button className="modal-close" onClick={closeModal}>×</button>
+            </div>
+            <div className="modal-body">
+              <p>{modal.instruction}</p>
+              <pre className="modal-command">{modal.command}</pre>
+              <button
+                className={`btn ${copied ? 'btn-success' : 'btn-primary'}`}
+                onClick={() => copyToClipboard(modal.command)}
+              >
+                {copied ? '✓ Copied!' : 'Copy to Clipboard'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal for Inbox */}
+      {inboxModal && (
+        <div className="modal-overlay" onClick={closeInboxModal}>
+          <div className="modal-content modal-wide" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>📬 Inbox: {inboxModal.agent}</h3>
+              <button className="modal-close" onClick={closeInboxModal}>×</button>
+            </div>
+            <div className="modal-body">
+              <p style={{ marginBottom: '1rem', color: 'var(--text-secondary)' }}>
+                {inboxModal.count} message{inboxModal.count !== 1 ? 's' : ''}
+              </p>
+              <div className="inbox-list">
+                {inboxModal.files.length === 0 ? (
+                  <p style={{ color: 'var(--text-secondary)' }}>No messages</p>
+                ) : (
+                  inboxModal.files.slice(0, 20).map((file, idx) => (
+                    <div key={idx} className="inbox-item">
+                      {file}
+                    </div>
+                  ))
+                )}
+                {inboxModal.files.length > 20 && (
+                  <p style={{ marginTop: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                    ...and {inboxModal.files.length - 20} more
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div style={{ marginTop: '2rem', padding: '1rem', background: 'var(--bg-secondary)', borderRadius: '8px' }}>
         <h4 style={{ marginBottom: '0.5rem' }}>API Key</h4>
