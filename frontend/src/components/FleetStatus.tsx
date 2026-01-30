@@ -61,8 +61,18 @@ export default function FleetStatus({ onAgentSelect }: FleetStatusProps) {
 
   const getApiKey = () => localStorage.getItem('cv_api_key') || ''
 
+  // Check if user is at bottom of terminal (within 50px threshold)
+  const isAtBottom = () => {
+    if (!terminalRef.current) return true
+    const { scrollTop, scrollHeight, clientHeight } = terminalRef.current
+    return scrollHeight - scrollTop - clientHeight < 50
+  }
+
   // Terminal modal functions
-  const fetchTerminal = useCallback(async (agentId: string, agentName: string) => {
+  const fetchTerminal = useCallback(async (agentId: string, agentName: string, isInitialLoad = false) => {
+    // Check scroll position before fetch to preserve it
+    const wasAtBottom = isAtBottom()
+
     try {
       const res = await fetch(`/api/fleet/terminal/${agentId}`)
       const json = await res.json()
@@ -73,12 +83,14 @@ export default function FleetStatus({ onAgentSelect }: FleetStatusProps) {
           content: json.content,
           online: json.online
         })
-        // Auto-scroll to bottom
-        setTimeout(() => {
-          if (terminalRef.current) {
-            terminalRef.current.scrollTop = terminalRef.current.scrollHeight
-          }
-        }, 50)
+        // Only auto-scroll if initial load OR user was already at bottom
+        if (isInitialLoad || wasAtBottom) {
+          setTimeout(() => {
+            if (terminalRef.current) {
+              terminalRef.current.scrollTop = terminalRef.current.scrollHeight
+            }
+          }, 50)
+        }
       } else if (!res.ok) {
         setTerminalModal({
           agentId,
@@ -98,12 +110,12 @@ export default function FleetStatus({ onAgentSelect }: FleetStatusProps) {
       return
     }
     setTerminalLoading(true)
-    await fetchTerminal(agent.id, agent.name)
+    await fetchTerminal(agent.id, agent.name, true) // Initial load - scroll to bottom
     setTerminalLoading(false)
 
-    // Start polling while modal is open
+    // Start polling while modal is open - preserve scroll position
     terminalPollRef.current = window.setInterval(() => {
-      fetchTerminal(agent.id, agent.name)
+      fetchTerminal(agent.id, agent.name, false)
     }, 2000)
   }
 
@@ -139,8 +151,8 @@ export default function FleetStatus({ onAgentSelect }: FleetStatusProps) {
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || 'Failed')
       setTerminalInput('')
-      // Refresh terminal to show the sent message
-      setTimeout(() => fetchTerminal(terminalModal.agentId, terminalModal.agentName), 500)
+      // Refresh terminal to show the sent message - scroll to bottom since user just sent
+      setTimeout(() => fetchTerminal(terminalModal.agentId, terminalModal.agentName, true), 500)
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : 'Send failed'
       setFleetMessage({ type: 'error', text: errMsg })
@@ -445,7 +457,7 @@ export default function FleetStatus({ onAgentSelect }: FleetStatusProps) {
               <div className="terminal-header-actions">
                 <button
                   className="btn-refresh"
-                  onClick={() => fetchTerminal(terminalModal.agentId, terminalModal.agentName)}
+                  onClick={() => fetchTerminal(terminalModal.agentId, terminalModal.agentName, false)}
                   title="Refresh"
                 >
                   🔄
