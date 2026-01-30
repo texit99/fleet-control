@@ -37,10 +37,35 @@ export default function FleetStatus({ onAgentSelect }: FleetStatusProps) {
   const [connectionType, setConnectionType] = useState<'sse' | 'polling'>('sse')
   const [inboxModal, setInboxModal] = useState<InboxModal | null>(null)
   const [inboxLoading, setInboxLoading] = useState<string | null>(null)
+  const [fleetActionLoading, setFleetActionLoading] = useState<string | null>(null)
+  const [fleetMessage, setFleetMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const eventSourceRef = useRef<EventSource | null>(null)
   const pollingIntervalRef = useRef<number | null>(null)
 
   const getApiKey = () => localStorage.getItem('cv_api_key') || ''
+
+  const fleetInboxCheck = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setFleetActionLoading('inbox')
+    setFleetMessage(null)
+    try {
+      const res = await fetch('/api/fleet/inbox-check-all', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': getApiKey(),
+        },
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Failed')
+      setFleetMessage({ type: 'success', text: json.status })
+      setTimeout(() => setFleetMessage(null), 3000)
+    } catch (err) {
+      setFleetMessage({ type: 'error', text: err instanceof Error ? err.message : 'Failed' })
+    } finally {
+      setFleetActionLoading(null)
+    }
+  }
 
   const checkInbox = async (agentId: string, agentName: string, e: React.MouseEvent) => {
     e.stopPropagation()
@@ -224,6 +249,26 @@ export default function FleetStatus({ onAgentSelect }: FleetStatusProps) {
                 {inboxLoading === agent.id ? <span className="spinner" /> : '📬'}
               </button>
             </div>
+            {/* Fleet Inbox Check - CV2-Main only */}
+            {agent.id === 'cv2-main' && (
+              <div className="fleet-commands-section">
+                <button
+                  className="btn btn-fleet-inbox"
+                  onClick={fleetInboxCheck}
+                  disabled={fleetActionLoading !== null}
+                  title="Trigger inbox check for all fleet agents"
+                >
+                  {fleetActionLoading === 'inbox' ? (
+                    <span className="spinner" />
+                  ) : (
+                    '📬 Fleet Inbox Check'
+                  )}
+                </button>
+                {fleetMessage && (
+                  <div className={`fleet-message ${fleetMessage.type}`}>{fleetMessage.text}</div>
+                )}
+              </div>
+            )}
             {onAgentSelect && <div className="card-hint">Click to view details →</div>}
           </div>
         ))}

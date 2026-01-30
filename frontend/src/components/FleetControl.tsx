@@ -141,6 +141,8 @@ export default function FleetControl() {
 
   const checkInbox = (agentId: string) => doContextAction(`/fleet/context/inbox/${agentId}`, `Inbox ${agentId}`)
   const fleetInboxCheck = () => doContextAction('/fleet/inbox-check-all', 'Fleet Inbox Check')
+  const fleetSaveAll = () => doContextAction('/fleet/save-all', 'Fleet Save')
+  const fleetPullAll = () => doContextAction('/fleet/pull-all', 'Fleet Pull')
 
   if (loading && !data) {
     return <div>Loading...</div>
@@ -288,9 +290,35 @@ export default function FleetControl() {
               </button>
             </div>
 
-            {/* Fleet-wide inbox check - CV2-Main only */}
+            {/* Fleet-wide commands - CV2-Main only */}
             {agent.id === 'cv2-main' && (
-              <div className="fleet-inbox-section">
+              <div className="fleet-commands-section">
+                <div className="fleet-commands-row">
+                  <button
+                    className="btn btn-fleet-cmd btn-fleet-save"
+                    onClick={fleetSaveAll}
+                    disabled={actionLoading !== null}
+                    title="Save context for all fleet agents"
+                  >
+                    {actionLoading === '/fleet/save-all' ? (
+                      <span className="spinner" />
+                    ) : (
+                      '💾 Fleet Save'
+                    )}
+                  </button>
+                  <button
+                    className="btn btn-fleet-cmd btn-fleet-pull"
+                    onClick={fleetPullAll}
+                    disabled={actionLoading !== null}
+                    title="Pull context for all fleet agents"
+                  >
+                    {actionLoading === '/fleet/pull-all' ? (
+                      <span className="spinner" />
+                    ) : (
+                      '📥 Fleet Pull'
+                    )}
+                  </button>
+                </div>
                 <button
                   className="btn btn-fleet-inbox"
                   onClick={fleetInboxCheck}
@@ -300,7 +328,7 @@ export default function FleetControl() {
                   {actionLoading === '/fleet/inbox-check-all' ? (
                     <span className="spinner" />
                   ) : (
-                    '📥 Fleet Inbox Check'
+                    '📬 Fleet Inbox Check'
                   )}
                 </button>
               </div>

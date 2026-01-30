@@ -968,11 +968,57 @@ body {
   cursor: not-allowed;
 }
 
-/* Fleet-wide inbox check button (CV2-Main only) */
-.fleet-inbox-section {
+/* Fleet-wide commands section (CV2-Main only) */
+.fleet-commands-section {
   margin-top: 0.75rem;
   padding-top: 0.75rem;
-  border-top: 1px solid var(--accent);
+  border-top: 2px solid var(--accent);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.fleet-commands-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-fleet-cmd {
+  flex: 1;
+  padding: 0.4rem 0.75rem;
+  border: none;
+  border-radius: 6px;
+  color: white;
+  font-weight: 500;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-height: 36px;
+}
+
+.btn-fleet-save {
+  background: linear-gradient(135deg, var(--success), #16a34a);
+}
+
+.btn-fleet-save:hover:not(:disabled) {
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+}
+
+.btn-fleet-pull {
+  background: linear-gradient(135deg, #8b5cf6, #6366f1);
+}
+
+.btn-fleet-pull:hover:not(:disabled) {
+  background: linear-gradient(135deg, #7c3aed, #4f46e5);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+}
+
+.btn-fleet-cmd:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .btn-fleet-inbox {
@@ -998,4 +1044,22 @@ body {
 .btn-fleet-inbox:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.fleet-message {
+  margin-top: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.fleet-message.success {
+  background: rgba(34, 197, 94, 0.15);
+  color: var(--success);
+}
+
+.fleet-message.error {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--danger);
 }
