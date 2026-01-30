@@ -9,6 +9,9 @@ interface Agent {
   type?: 'cli' | 'desktop' | 'remote'
   host?: string
   ip?: string
+  current_task?: string | null
+  task_status?: string
+  last_status_line?: string | null
 }
 
 interface FleetStatusResponse {
@@ -178,6 +181,18 @@ export default function FleetControl() {
                 {agent.online ? 'Online' : 'Offline'}
               </span>
             </div>
+
+            {agent.current_task && (
+              <div className="agent-task">
+                <span className="task-label">Task:</span> {agent.current_task}
+              </div>
+            )}
+            {agent.task_status && agent.task_status !== 'unknown' && (
+              <div className="agent-task-status">
+                <span className={`task-indicator ${agent.task_status}`}></span>
+                {agent.task_status === 'active' ? 'In Progress' : agent.task_status}
+              </div>
+            )}
 
             <div className="control-buttons">
               {!agent.online ? (

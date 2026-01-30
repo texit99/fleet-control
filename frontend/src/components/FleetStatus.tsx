@@ -9,6 +9,9 @@ interface Agent {
   type?: 'cli' | 'desktop' | 'remote'
   host?: string
   ip?: string
+  current_task?: string | null
+  task_status?: string
+  last_status_line?: string | null
 }
 
 interface FleetStatusResponse {
@@ -21,13 +24,47 @@ interface FleetStatusProps {
   onAgentSelect?: (agentId: string) => void
 }
 
+interface InboxModal {
+  agentId: string
+  agentName: string
+  files: string[]
+}
+
 export default function FleetStatus({ onAgentSelect }: FleetStatusProps) {
   const [data, setData] = useState<FleetStatusResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [connectionType, setConnectionType] = useState<'sse' | 'polling'>('sse')
+  const [inboxModal, setInboxModal] = useState<InboxModal | null>(null)
+  const [inboxLoading, setInboxLoading] = useState<string | null>(null)
   const eventSourceRef = useRef<EventSource | null>(null)
   const pollingIntervalRef = useRef<number | null>(null)
+
+  const getApiKey = () => localStorage.getItem('cv_api_key') || ''
+
+  const checkInbox = async (agentId: string, agentName: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setInboxLoading(agentId)
+    try {
+      const res = await fetch(`/api/fleet/context/inbox/${agentId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': getApiKey(),
+        },
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Failed to check inbox')
+
+      if (json.inbox_files) {
+        setInboxModal({ agentId, agentName, files: json.inbox_files })
+      }
+    } catch (err) {
+      console.error('Inbox check failed:', err)
+    } finally {
+      setInboxLoading(null)
+    }
+  }
 
   const fetchStatus = async () => {
     try {
@@ -163,8 +200,29 @@ export default function FleetStatus({ onAgentSelect }: FleetStatusProps) {
                 {agent.online ? (agent.type === 'desktop' ? 'Running' : 'Online') : (agent.type === 'desktop' ? 'Stopped' : 'Offline')}
               </span>
             </div>
-            <div className="inbox-count">
-              Inbox: {agent.inbox_count} message{agent.inbox_count !== 1 ? 's' : ''}
+            {agent.current_task && (
+              <div className="agent-task">
+                <span className="task-label">Task:</span> {agent.current_task}
+              </div>
+            )}
+            {agent.task_status && agent.task_status !== 'unknown' && (
+              <div className="agent-task-status">
+                <span className={`task-indicator ${agent.task_status}`}></span>
+                {agent.task_status === 'active' ? 'In Progress' : agent.task_status}
+              </div>
+            )}
+            <div className="inbox-row">
+              <span className="inbox-count">
+                Inbox: {agent.inbox_count} message{agent.inbox_count !== 1 ? 's' : ''}
+              </span>
+              <button
+                className="btn-inbox-check"
+                onClick={(e) => checkInbox(agent.id, agent.name, e)}
+                disabled={inboxLoading !== null}
+                title="View inbox"
+              >
+                {inboxLoading === agent.id ? <span className="spinner" /> : '📬'}
+              </button>
             </div>
             {onAgentSelect && <div className="card-hint">Click to view details →</div>}
           </div>
@@ -178,6 +236,28 @@ export default function FleetStatus({ onAgentSelect }: FleetStatusProps) {
           <span style={{ color: 'var(--warning)' }}>Polling (5s)</span>
         )}
       </div>
+
+      {inboxModal && (
+        <div className="modal-overlay" onClick={() => setInboxModal(null)}>
+          <div className="modal-content modal-wide" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>{inboxModal.agentName} Inbox</h3>
+              <button className="modal-close" onClick={() => setInboxModal(null)}>×</button>
+            </div>
+            <div className="modal-body">
+              {inboxModal.files.length === 0 ? (
+                <p>No messages in inbox</p>
+              ) : (
+                <div className="inbox-list">
+                  {inboxModal.files.map((file, idx) => (
+                    <div key={idx} className="inbox-item">{file}</div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

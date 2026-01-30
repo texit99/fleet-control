@@ -876,3 +876,94 @@ body {
     min-width: 140px;
   }
 }
+
+/* Agent Task Display */
+.agent-task {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.agent-task .task-label {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.agent-task-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.task-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-secondary);
+}
+
+.task-indicator.active {
+  background: var(--success);
+  animation: pulse 1.5s infinite;
+}
+
+.task-indicator.idle {
+  background: var(--text-secondary);
+}
+
+.task-indicator.waiting {
+  background: var(--warning);
+}
+
+.task-indicator.error {
+  background: var(--danger);
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Inbox row with button */
+.inbox-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.5rem;
+}
+
+.inbox-row .inbox-count {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.btn-inbox-check {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+  min-width: 36px;
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-inbox-check:hover:not(:disabled) {
+  background: var(--bg-card);
+  border-color: var(--accent);
+}
+
+.btn-inbox-check:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
