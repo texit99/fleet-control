@@ -37,8 +37,22 @@ export default function FleetControl() {
   const [copied, setCopied] = useState(false)
   const [mainMessage, setMainMessage] = useState('')
   const [sendingMessage, setSendingMessage] = useState(false)
+  const [apiKeyInput, setApiKeyInput] = useState('')
+  const [showApiKey, setShowApiKey] = useState(false)
+  const [apiKeySaved, setApiKeySaved] = useState(false)
 
   const getApiKey = () => localStorage.getItem('cv_api_key') || ''
+
+  // Load API key on mount
+  useEffect(() => {
+    setApiKeyInput(getApiKey())
+  }, [])
+
+  const saveApiKey = () => {
+    localStorage.setItem('cv_api_key', apiKeyInput)
+    setApiKeySaved(true)
+    setTimeout(() => setApiKeySaved(false), 2000)
+  }
 
   const sendMessageToMain = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -414,22 +428,53 @@ export default function FleetControl() {
       <div style={{ marginTop: '2rem', padding: '1rem', background: 'var(--bg-secondary)', borderRadius: '8px' }}>
         <h4 style={{ marginBottom: '0.5rem' }}>API Key</h4>
         <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '0.5rem' }}>
-          Control actions require an API key. Store it below (saved to localStorage).
+          Control actions require an API key.
         </p>
-        <input
-          type="password"
-          placeholder="Enter API key"
-          defaultValue={getApiKey()}
-          onChange={(e) => localStorage.setItem('cv_api_key', e.target.value)}
-          style={{
-            padding: '0.5rem',
-            borderRadius: '4px',
-            border: '1px solid var(--border)',
-            background: 'var(--bg-card)',
-            color: 'var(--text-primary)',
-            width: '300px',
-          }}
-        />
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <input
+            type={showApiKey ? 'text' : 'password'}
+            placeholder="Enter API key"
+            value={apiKeyInput}
+            onChange={(e) => setApiKeyInput(e.target.value)}
+            style={{
+              padding: '0.5rem',
+              borderRadius: '4px',
+              border: '1px solid var(--border)',
+              background: 'var(--bg-card)',
+              color: 'var(--text-primary)',
+              width: '250px',
+            }}
+          />
+          <button
+            onClick={() => setShowApiKey(!showApiKey)}
+            style={{
+              padding: '0.5rem 0.75rem',
+              borderRadius: '4px',
+              border: '1px solid var(--border)',
+              background: 'var(--bg-card)',
+              color: 'var(--text-primary)',
+              cursor: 'pointer',
+              fontSize: '0.85rem',
+            }}
+          >
+            {showApiKey ? '🙈' : '👁️'}
+          </button>
+          <button
+            onClick={saveApiKey}
+            style={{
+              padding: '0.5rem 1rem',
+              borderRadius: '4px',
+              border: 'none',
+              background: apiKeySaved ? 'var(--success)' : 'var(--accent)',
+              color: 'white',
+              cursor: 'pointer',
+              fontWeight: 500,
+              fontSize: '0.85rem',
+            }}
+          >
+            {apiKeySaved ? '✓ Saved' : 'Save'}
+          </button>
+        </div>
       </div>
     </div>
   )
