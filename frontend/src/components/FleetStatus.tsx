@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { formatAgentId } from '../utils/formatAgentId'
+import AppCards from './AppCards'
 
 interface Agent {
   id: string
@@ -410,6 +411,9 @@ export default function FleetStatus({ onAgentSelect }: FleetStatusProps) {
           </div>
         ))}
       </div>
+
+      {/* App Cards - Services */}
+      <AppCards />
 
       <div className="connection-status">
         {connectionType === 'sse' ? (
