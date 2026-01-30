@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { formatAgentId } from '../utils/formatAgentId'
 
 interface Agent {
   id: string
@@ -324,7 +325,7 @@ export default function FleetStatus({ onAgentSelect }: FleetStatusProps) {
               <div>
                 <div className="agent-name">{agent.name}</div>
                 <div className="agent-id">
-                  {agent.id}
+                  {formatAgentId(agent.id)}
                   {agent.type === 'desktop' && <span className="type-badge desktop">Desktop</span>}
                   {agent.type === 'remote' && <span className="type-badge remote">Remote</span>}
                 </div>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { formatAgentId } from '../utils/formatAgentId'
 
 interface Agent {
   id: string
@@ -205,7 +206,7 @@ export default function FleetControl() {
             <div className="agent-header">
               <div>
                 <div className="agent-name">{agent.name}</div>
-                <div className="agent-id">{agent.id}</div>
+                <div className="agent-id">{formatAgentId(agent.id)}</div>
               </div>
               <span className={`status-badge ${agent.online ? 'online' : 'offline'}`}>
                 {agent.online ? 'Online' : 'Offline'}
