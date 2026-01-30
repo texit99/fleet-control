@@ -120,13 +120,19 @@ export default function FleetStatus({ onAgentSelect }: FleetStatusProps) {
     e.preventDefault()
     if (!terminalModal || !terminalInput.trim()) return
 
+    const apiKey = getApiKey()
+    if (!apiKey) {
+      setFleetMessage({ type: 'error', text: 'API key required. Set it in Control tab.' })
+      return
+    }
+
     setSendingTerminalMsg(true)
     try {
       const res = await fetch(`/api/fleet/send-message/${terminalModal.agentId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-API-Key': getApiKey(),
+          'X-API-Key': apiKey,
         },
         body: JSON.stringify({ message: terminalInput })
       })
@@ -136,7 +142,8 @@ export default function FleetStatus({ onAgentSelect }: FleetStatusProps) {
       // Refresh terminal to show the sent message
       setTimeout(() => fetchTerminal(terminalModal.agentId, terminalModal.agentName), 500)
     } catch (err) {
-      console.error('Send failed:', err)
+      const errMsg = err instanceof Error ? err.message : 'Send failed'
+      setFleetMessage({ type: 'error', text: errMsg })
     } finally {
       setSendingTerminalMsg(false)
     }
@@ -147,13 +154,19 @@ export default function FleetStatus({ onAgentSelect }: FleetStatusProps) {
     e.preventDefault()
     if (!mainMessage.trim()) return
 
+    const apiKey = getApiKey()
+    if (!apiKey) {
+      setFleetMessage({ type: 'error', text: 'API key required. Set it in Control tab.' })
+      return
+    }
+
     setSendingMessage(true)
     try {
       const res = await fetch('/api/fleet/send-message/cv2-main', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-API-Key': getApiKey(),
+          'X-API-Key': apiKey,
         },
         body: JSON.stringify({ message: mainMessage })
       })

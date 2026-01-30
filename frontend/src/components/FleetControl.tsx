@@ -44,13 +44,19 @@ export default function FleetControl() {
     e.preventDefault()
     if (!mainMessage.trim()) return
 
+    const apiKey = getApiKey()
+    if (!apiKey) {
+      setMessage({ type: 'error', text: 'API key required. Enter it below.' })
+      return
+    }
+
     setSendingMessage(true)
     try {
       const res = await fetch('/api/fleet/send-message/cv2-main', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-API-Key': getApiKey(),
+          'X-API-Key': apiKey,
         },
         body: JSON.stringify({ message: mainMessage })
       })
