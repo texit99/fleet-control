@@ -6,7 +6,9 @@ interface Agent {
   online: boolean
   status: string
   inbox_count: number
-  type?: 'cli' | 'desktop'
+  type?: 'cli' | 'desktop' | 'remote'
+  host?: string
+  ip?: string
 }
 
 interface FleetStatusResponse {
@@ -154,6 +156,7 @@ export default function FleetStatus({ onAgentSelect }: FleetStatusProps) {
                 <div className="agent-id">
                   {agent.id}
                   {agent.type === 'desktop' && <span className="type-badge desktop">Desktop</span>}
+                  {agent.type === 'remote' && <span className="type-badge remote">Remote</span>}
                 </div>
               </div>
               <span className={`status-badge ${agent.online ? 'online' : 'offline'}`}>

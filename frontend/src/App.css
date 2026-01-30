@@ -157,6 +157,11 @@ body {
   color: var(--accent);
 }
 
+.type-badge.remote {
+  background: rgba(168, 85, 247, 0.2);
+  color: #a855f7;
+}
+
 /* Control buttons */
 .control-buttons {
   display: flex;

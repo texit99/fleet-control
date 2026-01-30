@@ -6,7 +6,9 @@ interface Agent {
   online: boolean
   status: string
   inbox_count: number
-  type?: 'cli' | 'desktop'
+  type?: 'cli' | 'desktop' | 'remote'
+  host?: string
+  ip?: string
 }
 
 interface FleetStatusResponse {
