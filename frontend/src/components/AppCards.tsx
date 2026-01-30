@@ -86,6 +86,14 @@ const STATIC_APPS: StaticApp[] = [
     healthUrl: 'http://localhost:5678',
     port: 5678,
   },
+  {
+    id: 'pm-app',
+    name: 'Project Manager',
+    icon: '📋',
+    url: 'http://pm.cv2.local/',
+    healthUrl: 'http://localhost:3001',
+    port: 3001,
+  },
 ]
 
 // Service icons and URLs mapping for API services
@@ -94,7 +102,6 @@ const SERVICE_CONFIG: Record<string, { icon: string; url?: string }> = {
   'fleet-chat': { icon: '💬', url: 'http://localhost:8200' },
   'fleet-viewer': { icon: '👁️', url: 'http://localhost:8111' },
   'voice-stt': { icon: '🎤' },
-  'pm-app': { icon: '📋', url: 'http://pm.cv2.local/' },
   'trigger-api': { icon: '⚡', url: 'http://localhost:8100/health' },
 }
 
