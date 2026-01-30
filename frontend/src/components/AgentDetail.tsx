@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 interface Doc {
   name: string
@@ -113,7 +114,7 @@ export default function AgentDetail({ agentId, onBack }: AgentDetailProps) {
                 {contentLoading ? (
                   <div className="loading">Loading document...</div>
                 ) : (
-                  <ReactMarkdown>{docContent}</ReactMarkdown>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{docContent}</ReactMarkdown>
                 )}
               </div>
             </>

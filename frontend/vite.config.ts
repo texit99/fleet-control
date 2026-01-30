@@ -6,6 +6,8 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 8510,
+    host: '0.0.0.0',
+    allowedHosts: ['fleet.cv2.local', 'localhost'],
     proxy: {
       '/api': {
         target: 'http://localhost:8100',
