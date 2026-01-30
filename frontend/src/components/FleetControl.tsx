@@ -21,11 +21,6 @@ interface ModalData {
   command: string
 }
 
-interface InboxModalData {
-  agent: string
-  count: number
-  files: string[]
-}
 
 export default function FleetControl() {
   const [data, setData] = useState<FleetStatusResponse | null>(null)
@@ -33,7 +28,6 @@ export default function FleetControl() {
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [modal, setModal] = useState<ModalData | null>(null)
-  const [inboxModal, setInboxModal] = useState<InboxModalData | null>(null)
   const [copied, setCopied] = useState(false)
 
   const getApiKey = () => localStorage.getItem('cv_api_key') || ''
@@ -140,27 +134,7 @@ export default function FleetControl() {
     setCopied(false)
   }
 
-  const checkInbox = async (agentId: string) => {
-    setActionLoading(`inbox-${agentId}`)
-    try {
-      const res = await fetch(`/api/inbox/${agentId}`)
-      if (!res.ok) throw new Error('Failed to fetch inbox')
-      const data = await res.json()
-      setInboxModal({
-        agent: agentId,
-        count: data.count,
-        files: data.files || []
-      })
-    } catch (err) {
-      setMessage({ type: 'error', text: err instanceof Error ? err.message : 'Failed to fetch inbox' })
-    } finally {
-      setActionLoading(null)
-    }
-  }
-
-  const closeInboxModal = () => {
-    setInboxModal(null)
-  }
+  const checkInbox = (agentId: string) => doContextAction(`/fleet/context/inbox/${agentId}`, `Inbox ${agentId}`)
 
   if (loading && !data) {
     return <div>Loading...</div>
@@ -285,10 +259,10 @@ export default function FleetControl() {
               <button
                 className="btn btn-context btn-inbox"
                 onClick={() => checkInbox(agent.id)}
-                disabled={actionLoading !== null}
-                title="Check inbox messages"
+                disabled={actionLoading !== null || (!agent.online && agent.type !== 'desktop')}
+                title="Pull DB inbox"
               >
-                {actionLoading === `inbox-${agent.id}` ? (
+                {actionLoading === `/fleet/context/inbox/${agent.id}` ? (
                   <span className="spinner" />
                 ) : (
                   '📬 Inbox'
@@ -321,38 +295,6 @@ export default function FleetControl() {
         </div>
       )}
 
-      {/* Modal for Inbox */}
-      {inboxModal && (
-        <div className="modal-overlay" onClick={closeInboxModal}>
-          <div className="modal-content modal-wide" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>📬 Inbox: {inboxModal.agent}</h3>
-              <button className="modal-close" onClick={closeInboxModal}>×</button>
-            </div>
-            <div className="modal-body">
-              <p style={{ marginBottom: '1rem', color: 'var(--text-secondary)' }}>
-                {inboxModal.count} message{inboxModal.count !== 1 ? 's' : ''}
-              </p>
-              <div className="inbox-list">
-                {inboxModal.files.length === 0 ? (
-                  <p style={{ color: 'var(--text-secondary)' }}>No messages</p>
-                ) : (
-                  inboxModal.files.slice(0, 20).map((file, idx) => (
-                    <div key={idx} className="inbox-item">
-                      {file}
-                    </div>
-                  ))
-                )}
-                {inboxModal.files.length > 20 && (
-                  <p style={{ marginTop: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-                    ...and {inboxModal.files.length - 20} more
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       <div style={{ marginTop: '2rem', padding: '1rem', background: 'var(--bg-secondary)', borderRadius: '8px' }}>
         <h4 style={{ marginBottom: '0.5rem' }}>API Key</h4>
