@@ -68,6 +68,37 @@ export default function FleetStatus({ onAgentSelect }: FleetStatusProps) {
     return scrollHeight - scrollTop - clientHeight < 50
   }
 
+  // Filter terminal content to remove Claude input borders and noise
+  const filterTerminalContent = (content: string): string => {
+    const lines = content.split('\n')
+    const filtered = lines.filter(line => {
+      // Remove lines that are mostly box-drawing chars (Claude input borders)
+      const boxChars = line.replace(/[─━═┌┐└┘├┤┬┴┼│┃╭╮╯╰▔▁]/g, '').trim()
+      if (line.length > 20 && boxChars.length < line.length * 0.2) {
+        return false
+      }
+      // Remove empty prompt lines (just spaces and prompt chars)
+      if (/^[\s❯›>]*$/.test(line)) {
+        return false
+      }
+      // Remove bypass permissions line
+      if (line.includes('bypass permissions')) {
+        return false
+      }
+      return true
+    })
+    // Collapse multiple blank lines into one
+    let result: string[] = []
+    let prevBlank = false
+    for (const line of filtered) {
+      const isBlank = line.trim() === ''
+      if (isBlank && prevBlank) continue
+      result.push(line)
+      prevBlank = isBlank
+    }
+    return result.join('\n').trim()
+  }
+
   // Terminal modal functions
   const fetchTerminal = useCallback(async (agentId: string, agentName: string, isInitialLoad = false) => {
     // Check scroll position before fetch to preserve it
@@ -80,7 +111,7 @@ export default function FleetStatus({ onAgentSelect }: FleetStatusProps) {
         setTerminalModal({
           agentId,
           agentName,
-          content: json.content,
+          content: filterTerminalContent(json.content),
           online: json.online
         })
         // Only auto-scroll if initial load OR user was already at bottom
